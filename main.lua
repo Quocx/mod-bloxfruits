@@ -1,164 +1,141 @@
--- Auto Thức Tỉnh Thiên Thần V3 (Full System)
--- KRNL Supported | Made by ChatGPT + You
+-- GUI nút bật/tắt
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+local ToggleButton = Instance.new("TextButton", ScreenGui)
+ToggleButton.Size = UDim2.new(0, 130, 0, 40)
+ToggleButton.Position = UDim2.new(0, 20, 0, 350)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.Text = "Auto Angel V3: OFF"
+ToggleButton.Font = Enum.Font.SourceSansBold
+ToggleButton.TextSize = 18
 
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local TweenService = game:GetService("TweenService")
-local HttpService = game:GetService("HttpService")
-local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TeleportService = game:GetService("TeleportService")
-local GuiService = game:GetService("GuiService")
+_G.AutoAngel = false
 
--- SETTINGS
-local HIT_DELAY = 0.0175
-local ATTACK_DISTANCE = 50
-local AUTO_HOP = true
-local ENABLED = false
-local triedServers = {}
-
--- GUI
-local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-ScreenGui.Name = "AutoAngelGUI"
-ScreenGui.ResetOnSpawn = false
-
--- Toggle Button
-local Toggle = Instance.new("TextButton")
-Toggle.Parent = ScreenGui
-Toggle.Size = UDim2.new(0, 160, 0, 50)
-Toggle.Position = UDim2.new(0, 20, 0, 220)
-Toggle.Text = "AutoAngel [OFF]"
-Toggle.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-Toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-Toggle.TextSize = 20
-Toggle.Font = Enum.Font.GothamBold
-Toggle.AutoButtonColor = true
-Toggle.ClipsDescendants = true
-Toggle.BackgroundTransparency = 0
-Toggle.BorderSizePixel = 0
-Toggle.TextWrapped = true
-Toggle.AnchorPoint = Vector2.new(0, 0)
-Toggle.BorderMode = Enum.BorderMode.Outline
-Toggle.ZIndex = 2
-Toggle.TextStrokeTransparency = 0.5
-Toggle.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-Toggle.SizeConstraint = Enum.SizeConstraint.RelativeXY
-Toggle.UICorner = Instance.new("UICorner", Toggle)
-Toggle.UICorner.CornerRadius = UDim.new(0, 25)
-
--- Status Text
-local statusText = Instance.new("TextLabel", ScreenGui)
-statusText.Size = UDim2.new(1, 0, 0, 30)
-statusText.Position = UDim2.new(0, 0, 0, 0)
-statusText.Text = ""
-statusText.BackgroundTransparency = 1
-statusText.TextColor3 = Color3.fromRGB(255, 255, 255)
-statusText.TextSize = 20
-statusText.Font = Enum.Font.GothamBold
-
-Toggle.MouseButton1Click:Connect(function()
-    ENABLED = not ENABLED
-    Toggle.Text = ENABLED and "AutoAngel [ON]" or "AutoAngel [OFF]"
-    statusText.Text = ENABLED and "Đang tự động lấy V3..." or ""
+ToggleButton.MouseButton1Click:Connect(function()
+    _G.AutoAngel = not _G.AutoAngel
+    ToggleButton.Text = _G.AutoAngel and "Auto Angel V3: ON" or "Auto Angel V3: OFF"
 end)
 
--- Kiểm tra tộc
-local function isAngel(player)
-    local success, result = pcall(function()
-        if player:FindFirstChild("Data") and player.Data:FindFirstChild("Race") then
-            local race = player.Data.Race.Value
-            return race:lower() == "skypiean" or race:lower() == "angel"
+-- Các hàm phụ
+function ExpandFullHitbox()
+    local char = game.Players.LocalPlayer.Character
+    if not char then return end
+    for _, part in pairs(char:GetDescendants()) do
+        if part:IsA("BasePart") and (part.Name:lower():find("hitbox") or part:IsDescendantOf(char)) then
+            part.Size = Vector3.new(60, 60, 60)
+            part.Transparency = 1
+            part.CanCollide = false
         end
-        return false
+    end
+end
+
+function EnableHaki()
+    pcall(function()
+        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Buso")
     end)
-    return success and result
 end
 
--- Hop thông minh
-local function smartHop()
-    local success, response = pcall(function()
-        return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/2753915549/servers/Public?sortOrder=Asc&limit=100"))
-    end)
-    if success and response and response.data then
-        for _, server in pairs(response.data) do
-            if server.playing < server.maxPlayers and not triedServers[server.id] then
-                triedServers[server.id] = true
-                TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id)
-                return
-            end
+function UseCSkill()
+    local vim = game:GetService("VirtualInputManager")
+    vim:SendKeyEvent(true, "C", false, game)
+    wait(0.1)
+    vim:SendKeyEvent(false, "C", false, game)
+end
+
+function SuperM1()
+    local vim = game:GetService("VirtualInputManager")
+    for i = 1, 10 do
+        vim:SendMouseButtonEvent(0,0,0,true,game,0)
+        vim:SendMouseButtonEvent(0,0,0,false,game,0)
+        wait(0.0175)
+    end
+end
+
+function GetRaceProgress()
+    return game.Players.LocalPlayer.Data.RaceProgress.Value
+end
+
+function FinishQuest()
+    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("RaceTrainer", "Finish")
+end
+
+function GetAngelQuest()
+    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("RaceTrainer", "Start")
+end
+
+function HopToAnotherServer()
+    local HttpService = game:GetService("HttpService")
+    local tpService = game:GetService("TeleportService")
+    local placeId = game.PlaceId
+    local servers = {}
+    local req = syn and syn.request or http_request
+    local body = req({
+        Url = "https://games.roblox.com/v1/games/"..placeId.."/servers/Public?sortOrder=Asc&limit=100"
+    }).Body
+    for _, server in pairs(HttpService:JSONDecode(body).data) do
+        if server.playing < server.maxPlayers and server.id ~= game.JobId then
+            table.insert(servers, server.id)
+        end
+    end
+    if #servers > 0 then
+        tpService:TeleportToPlaceInstance(placeId, servers[math.random(1, #servers)], game.Players.LocalPlayer)
+    end
+end
+
+function IsAngelPlayer(p)
+    return p and p.Character and p.Data and p.Data.Race and p.Data.Race.Value == "Angel"
+        and p.Team ~= game.Players.LocalPlayer.Team
+        and p.Character:FindFirstChild("HumanoidRootPart")
+        and p.Character:FindFirstChild("Humanoid")
+        and p.Character.Humanoid.Health > 0
+        and p:FindFirstChild("PVP") and p.PVP.Value == true
+end
+
+function FindAngelWithPVP()
+    for _, p in ipairs(game.Players:GetPlayers()) do
+        if p ~= game.Players.LocalPlayer and IsAngelPlayer(p) then
+            return p
         end
     end
 end
 
--- Tìm Angel gần nhất
-local function getAngel()
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and isAngel(player) then
-            return player
-        end
-    end
-    return nil
-end
-
--- Di chuyển đến mục tiêu
-local function moveToTarget(target)
-    local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    local targetHRP = target.Character and target.Character:FindFirstChild("HumanoidRootPart")
-    if hrp and targetHRP then
-        local tween = TweenService:Create(hrp, TweenInfo.new(0.25), {CFrame = targetHRP.CFrame * CFrame.new(0, 0, -3)})
-        tween:Play()
-    end
-end
-
--- Tấn công mục tiêu
-local function attackTarget(target)
-    local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-    if not tool then return end
-
-    for i = 1, 300 do
-        if not target or not target.Character or not target.Character:FindFirstChild("Humanoid") then break end
-        local hp = target.Character.Humanoid.Health
-        local pvpOff = target.Character:FindFirstChild("ForceField") -- nếu PvP tắt
-
-        if hp <= 0 or pvpOff then
-            task.wait(1) -- delay 1s đề phòng Ghost
-            if target.Character.Humanoid.Health <= 0 or target.Character:FindFirstChild("ForceField") then
-                break
-            end
-        end
-
-        moveToTarget(target)
-        tool:Activate()
-        task.wait(HIT_DELAY)
-    end
-end
-
--- Sử dụng Dragon Talon để phá Ken
-local function useSkillC()
-    local cSkill = LocalPlayer.Character:FindFirstChild("Dragon Talon") and LocalPlayer.Character["Dragon Talon"]:FindFirstChild("C")
-    if cSkill then cSkill:Activate() end
-end
-
--- Thức tỉnh V3
-local function awakenRaceV3()
-    ReplicatedStorage.Remotes.CommF_:InvokeServer("StartRaceV3")
-end
-
--- Tiến trình chính
+-- Auto chính
 task.spawn(function()
-    while true do
-        task.wait(2)
-        if ENABLED then
-            local target = getAngel()
-            if not target then
-                smartHop()
+    while task.wait(1) do
+        if _G.AutoAngel then
+            ExpandFullHitbox()
+            EnableHaki()
+
+            if GetRaceProgress() >= 4 then
+                FinishQuest()
                 continue
             end
 
-            awakenRaceV3()
-            useSkillC()
-            attackTarget(target)
-            ReplicatedStorage.Remotes.CommF_:InvokeServer("RaceV3Progress", "Completed")
+            GetAngelQuest()
+            wait(0.5)
+
+            local enemy = FindAngelWithPVP()
+            if enemy then
+                repeat
+                    if enemy and enemy.Character and enemy.Character:FindFirstChild("HumanoidRootPart") and enemy.Character.Humanoid.Health > 0 then
+                        local myChar = game.Players.LocalPlayer.Character
+                        if myChar and myChar:FindFirstChild("HumanoidRootPart") then
+                            myChar.HumanoidRootPart.CFrame = enemy.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+                            UseCSkill()
+                            SuperM1()
+                        end
+                    end
+                    task.wait(0.05)
+                until enemy.Character.Humanoid.Health <= 0 or not _G.AutoAngel
+
+                -- Kiểm tra xong có trả nhiệm vụ được không
+                if GetRaceProgress() >= 4 then
+                    FinishQuest()
+                end
+            else
+                HopToAnotherServer()
+                wait(3)
+            end
         end
     end
 end)
