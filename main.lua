@@ -1,155 +1,127 @@
-local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local Debris = game:GetService("Debris")
+-- Auto V3 Angel - Full Auto NPC + Attack + Turn in
+-- By @yourName (edit for your usage)
 
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local Players, RS, TPService, HttpService = game:GetService("Players"), game:GetService("ReplicatedStorage"), game:GetService("TeleportService"), game:GetService("HttpService")
+local LP = Players.LocalPlayer
+local Char, HRP = LP.Character or LP.CharacterAdded:Wait(), nil
 
-local canDodge = true
-local cooldownTime = 1.5
+local ENABLED = false
+local AUTO_HOP = true
+local HIT_DELAY = 0.0175
+local ATTACK_RANGE = 50
 
 -- GUI
-local screenGui = Instance.new("ScreenGui", playerGui)
-screenGui.Name = "MainMenu"
+local gui = Instance.new("ScreenGui", LP:WaitForChild("PlayerGui"))
+gui.ResetOnSpawn = false
+local toggleBtn = Instance.new("TextButton", gui)
+toggleBtn.Size = UDim2.new(0, 130, 0, 36)
+toggleBtn.Position = UDim2.new(0, 10, 0, 180)
+toggleBtn.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+toggleBtn.TextColor3 = Color3.new(1,1,1)
+toggleBtn.Text = "Auto Angel V3 [OFF]"
+toggleBtn.AutoButtonColor = false
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.TextSize = 14
+toggleBtn.BorderSizePixel = 0
+toggleBtn.BackgroundTransparency = 0.1
+toggleBtn.MouseButton1Click:Connect(function()
+	ENABLED = not ENABLED
+	toggleBtn.Text = ENABLED and "Auto Angel V3 [ON]" or "Auto Angel V3 [OFF]"
+end)
 
-local frame = Instance.new("Frame", screenGui)
-frame.Size = UDim2.new(0.4, 0, 0.5, 0)
-frame.Position = UDim2.new(0.3, 0, 0.25, 0)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-
-local UICorner = Instance.new("UICorner", frame)
-UICorner.CornerRadius = UDim.new(0, 12)
-
-local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.new(1, 0, 0.2, 0)
-title.Position = UDim2.new(0, 0, 0, 0)
-title.BackgroundTransparency = 1
-title.Text = "Main Menu"
-title.Font = Enum.Font.SourceSansBold
-title.TextSize = 36
-title.TextColor3 = Color3.new(1, 1, 1)
-
--- Bóng chữ
-local shadow = title:Clone()
-shadow.Name = "TitleShadow"
-shadow.TextColor3 = Color3.new(0, 0, 0)
-shadow.Position = UDim2.new(0, 2, 0, 2)
-shadow.ZIndex = title.ZIndex - 1
-shadow.Parent = frame
-
-local function createButton(text, positionY)
-    local button = Instance.new("TextButton", frame)
-    button.Size = UDim2.new(0.8, 0, 0.15, 0)
-    button.Position = UDim2.new(0.1, 0, positionY, 0)
-    button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    button.Text = text
-    button.Font = Enum.Font.SourceSans
-    button.TextSize = 24
-    button.TextColor3 = Color3.new(1, 1, 1)
-
-    local corner = Instance.new("UICorner", button)
-    corner.CornerRadius = UDim.new(0, 8)
-
-    button.MouseEnter:Connect(function()
-        button.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-    end)
-    button.MouseLeave:Connect(function()
-        button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    end)
-
-    return button
+-- Helper functions
+local function isAngel(p)
+	local ok, result = pcall(function()
+		return p:FindFirstChild("Data") and p.Data:FindFirstChild("Race") and (p.Data.Race.Value == "Skypiean" or p.Data.Race.Value == "Angel")
+	end)
+	return ok and result
 end
 
-local playButton = createButton("Play", 0.25)
-local settingsButton = createButton("Settings", 0.45)
-local dodgeButton = createButton("Cyborg Dodge", 0.65)
-local exitButton = createButton("Exit", 0.85)
-
--- Né Cyborg
-local function createAfterImage()
-	local clone = character:Clone()
-	clone.Name = "AfterImage"
-	for _, v in ipairs(clone:GetDescendants()) do
-		if v:IsA("BasePart") then
-			v.Anchored = true
-			v.CanCollide = false
-			v.Transparency = 0.5
-			v.Material = Enum.Material.Neon
-		elseif v:IsA("Decal") or v:IsA("Script") or v:IsA("LocalScript") then
-			v:Destroy()
+local function getTarget()
+	for _, p in pairs(Players:GetPlayers()) do
+		if p ~= LP and isAngel(p) and p.Character and p.Character:FindFirstChild("Humanoid") then
+			return p
 		end
 	end
-	clone.Parent = workspace
-	Debris:AddItem(clone, 0.3)
 end
 
-local function playCyborgEffect()
-	local effect = Instance.new("Part")
-	effect.Size = Vector3.new(1, 1, 1)
-	effect.Shape = Enum.PartType.Ball
-	effect.Material = Enum.Material.Neon
-	effect.Color = Color3.fromRGB(0, 255, 255)
-	effect.Anchored = true
-	effect.CanCollide = false
-	effect.Position = humanoidRootPart.Position
-	effect.Parent = workspace
-
-	local particle = Instance.new("ParticleEmitter", effect)
-	particle.Texture = "rbxassetid://4483345998"
-	particle.Speed = NumberRange.new(0)
-	particle.Size = NumberSequence.new(3)
-	particle.Lifetime = NumberRange.new(0.2)
-	particle.Rate = 1000
-	particle.LightEmission = 1
-	particle.Rotation = NumberRange.new(0, 360)
-	particle.Transparency = NumberSequence.new(0.2)
-
-	Debris:AddItem(effect, 0.3)
-end
-
-local function dodge()
-	if not canDodge then return end
-	canDodge = false
-
-	local direction = humanoidRootPart.CFrame.lookVector
-	local targetPos = humanoidRootPart.Position + direction * 15
-
-	createAfterImage()
-	playCyborgEffect()
-
-	local tweenInfo = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-	local tween = TweenService:Create(humanoidRootPart, tweenInfo, {CFrame = CFrame.new(targetPos)})
-	tween:Play()
-
-	task.delay(cooldownTime, function()
-		canDodge = true
-	end)
-end
-
--- Kích hoạt né khi bấm R
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
-	if input.KeyCode == Enum.KeyCode.R then
-		dodge()
+local function moveTo(cf)
+	HRP = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+	if HRP then
+		HRP.CFrame = cf
 	end
-end)
+end
 
--- Nút chức năng
-playButton.MouseButton1Click:Connect(function()
-	print("Play button clicked")
-end)
+local function useDragonTalonC()
+	local tool = LP.Character and LP.Character:FindFirstChild("Dragon Talon")
+	if tool then
+		local skillC = tool:FindFirstChild("C")
+		if skillC then skillC:Activate() end
+	end
+end
 
-settingsButton.MouseButton1Click:Connect(function()
-	print("Settings button clicked")
-end)
+local function talkToMythicalSpirit()
+	for _, v in pairs(workspace:GetDescendants()) do
+		if v:IsA("Model") and v.Name == "Mythological Spirit" then
+			moveTo(v.HumanoidRootPart.CFrame + Vector3.new(0,2,0))
+			fireclickdetector(v:FindFirstChildWhichIsA("ClickDetector"))
+			wait(0.3)
+			RS.Remotes.CommF_:InvokeServer("StartRaceV3")
+			break
+		end
+	end
+end
 
-dodgeButton.MouseButton1Click:Connect(function()
-	print("Cyborg Dodge enabled – Use R to dodge")
-end)
+local function turnIn()
+	RS.Remotes.CommF_:InvokeServer("RaceV3Progress", "Completed")
+end
 
-exitButton.MouseButton1Click:Connect(function()
-	screenGui:Destroy()
+local function checkPVPDisabled(target)
+	local tag = target and target:FindFirstChild("Data") and target.Data:FindFirstChild("PvPDisabled")
+	return tag and tag.Value == true
+end
+
+local function attackTarget(target)
+	local tool = LP.Character and LP.Character:FindFirstChildOfClass("Tool")
+	if not tool then return end
+	for i = 1, 100 do
+		if not target or not target.Character or not target.Character:FindFirstChild("Humanoid") then break end
+		if target.Character.Humanoid.Health <= 0 then break end
+		if checkPVPDisabled(target) then break end
+		moveTo(target.Character:FindFirstChild("HumanoidRootPart").CFrame * CFrame.new(0, 0, -3))
+		tool:Activate()
+		useDragonTalonC()
+		task.wait(HIT_DELAY)
+	end
+end
+
+-- Server hop
+local function hopServer()
+	if not AUTO_HOP then return end
+	local servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/2753915549/servers/Public?sortOrder=Asc&limit=100"))
+	for _, v in pairs(servers.data) do
+		if v.playing < v.maxPlayers then
+			TPService:TeleportToPlaceInstance(game.PlaceId, v.id)
+			break
+		end
+	end
+end
+
+-- Main loop
+task.spawn(function()
+	while task.wait(2) do
+		if ENABLED then
+			talkToMythicalSpirit()
+			local enemy = getTarget()
+			if enemy then
+				attackTarget(enemy)
+				task.wait(1)
+				if enemy.Character and enemy.Character.Humanoid.Health <= 0 or checkPVPDisabled(enemy) then
+					turnIn()
+				end
+			else
+				hopServer()
+			end
+		end
+	end
 end)
