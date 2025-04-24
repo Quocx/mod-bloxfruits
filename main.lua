@@ -28,13 +28,7 @@ getgenv().simple_settings = {
         ["COLOR-HAKI"] = {"Pure Red","Winter Sky","Snow White"}, -- Aura color to craft
     },
 
-    ["FRUITPURCHASE"] = true, -- Automatically purchase fruits based on priority list
-    ["PRIORITYFRUIT"] = { -- List of preferred fruits to purchase or eat in order of priority
-        [1] = "Dragon-Dragon",
-        [2] = "Dough-Dough",
-    },
-
-    ["FPSCAP"] = 30, -- Limit the frame rate to optimize performance
-    ["LOWTEXTURE"] = true-- Reduce graphic quality for better performance
+    ["FPSCAP"] = 20, -- Limit the frame rate to optimize performance
+    ["LOWTEXTURE"] = true, -- Reduce graphic quality for better performance
 }
 loadstring(game:HttpGet("https://raw.githubusercontent.com/simple-hubs/contents/refs/heads/main/bloxfruit-kaitan-main.lua"))()
