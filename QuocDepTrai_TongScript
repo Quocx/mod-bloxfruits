@@ -1,0 +1,129 @@
+-- Tạo GUI cho hiệu ứng chữ
+local player = game.Players.LocalPlayer
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local textLabel = Instance.new("TextLabel")
+textLabel.Parent = screenGui
+textLabel.Size = UDim2.new(0, 400, 0, 50)
+textLabel.Position = UDim2.new(0.5, -200, 0.5, -25)
+textLabel.Text = ""
+textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)  -- Màu chữ trắng
+textLabel.BackgroundTransparency = 1  -- Không có nền
+
+local flash = Instance.new("Frame")
+flash.Parent = screenGui
+flash.Size = UDim2.new(1, 0, 1, 0)
+flash.Position = UDim2.new(0, 0, 0, 0)
+flash.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+flash.BackgroundTransparency = 1
+flash.ZIndex = 0
+
+local lines = {
+    "30 tháng 4😄",
+    "1975😄",
+    "Việt Nam thống nhất đất nước🇻🇳",
+    ".....!",
+    ".....!",
+    "Việt Nam huy hoàng😎!",
+    "TÔI! Mãi yêu Việt Nam🇻🇳🇻🇳😍",
+    "cali tuổi cái lồn con cặc👈😏👎"
+}
+
+local function shake(duration)
+    local startTime = tick()
+    while tick() - startTime < duration do
+        local t = (tick() - startTime) / duration
+        local shakeAmount = math.sin(t * math.pi * 2) * 10
+        screenGui.Position = UDim2.new(0, shakeAmount, 0, 0)
+        wait()
+    end
+    screenGui.Position = UDim2.new(0, 0, 0, 0)
+end
+
+local function showLine(line, index)
+    textLabel.Text = ""
+    
+    local fromLeft = index % 2 == 1
+    local color = fromLeft and Color3.fromRGB(255, 255, 0) or Color3.fromRGB(255, 0, 0)
+
+    -- Sáng + lắc màn hình khi ký tự đầu tiên xuất hiện
+    flash.BackgroundTransparency = 0.25
+    shake(0.5)
+
+    -- Dòng 1,2: chỉ ký tự đầu tiên bay vào
+    if index <= 2 then
+        local firstChar = string.sub(line, 1, 1)
+        local rest = string.sub(line, 2)
+
+        local tempLabel = textLabel:Clone()
+        tempLabel.Text = firstChar
+        tempLabel.Position = fromLeft and UDim2.new(0, -100, 0.5, -30) or UDim2.new(1, 100, 0.5, -30)
+        tempLabel.TextColor3 = color
+        tempLabel.TextTransparency = 0
+        tempLabel.Parent = screenGui
+
+        local targetX = textLabel.Position.X.Offset - 300 + 30
+        local startTime = tick()
+        local duration = 0.5
+        while tick() - startTime < duration do
+            local t = (tick() - startTime) / duration
+            local posX = fromLeft and (-100 + t * (targetX + 100)) or (1000 - t * (targetX + 100))
+            tempLabel.Position = UDim2.new(0, posX, 0.5, -30)
+            flash.BackgroundTransparency = 0.25 + t * 0.75
+            wait()
+        end
+        tempLabel:Destroy()
+        flash.BackgroundTransparency = 1
+
+        -- Hiện từng chữ còn lại
+        for i = 1, #line do
+            textLabel.Text = string.sub(line, 1, i)
+            wait(0.09)
+        end
+    else
+        -- Dòng 3–4: tất cả ký tự bay vào từng cái một
+        for i = 1, #line do
+            local char = string.sub(line, i, i)
+            local tempChar = textLabel:Clone()
+            tempChar.Text = char
+            tempChar.TextColor3 = color
+            tempChar.TextTransparency = 0
+            tempChar.Parent = screenGui
+
+            local offsetX = (i - 1) * 20
+            local targetX = textLabel.Position.X.Offset - 300 + offsetX
+
+            tempChar.Position = fromLeft and UDim2.new(0, -100, 0.5, -30) or UDim2.new(1, 100, 0.5, -30)
+            local startTime = tick()
+            local duration = 0.5
+            while tick() - startTime < duration do
+                local t = (tick() - startTime) / duration
+                local posX = fromLeft and (-100 + t * (targetX + 100)) or (1000 - t * (targetX + 100))
+                tempChar.Position = UDim2.new(0, posX, 0.5, -30)
+                wait()
+            end
+        end
+    end
+
+    -- Mờ dần
+    for i = 1, 10 do
+        textLabel.TextTransparency = i / 10
+        wait(0.09)
+    end
+end
+
+-- Hiển thị từng dòng
+for i, line in ipairs(lines) do
+    showLine(line, i)
+    wait(0.875)
+end
+
+-- Sau khi hoàn thành các hiệu ứng chữ, sẽ chạy script từ URL
+local function runScriptAfterTextAnimation()
+    local loadScript = loadstring(game:HttpGet("https://raw.githubusercontent.com/Quocx/mod-bloxfruits/acd19ff495c4cdbb6dcdada06c919f776176ce83/AllScript-BloxFruits.lua"))
+    loadScript()
+end
+
+-- Gọi hàm để chạy script sau khi hoàn thành các hiệu ứng chữ
+runScriptAfterTextAnimation()
