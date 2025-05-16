@@ -7,11 +7,11 @@ textLabel.Parent = screenGui
 textLabel.Size = UDim2.new(0, 400, 0, 50)
 textLabel.Position = UDim2.new(0.5, -200, 0.5, -25)
 textLabel.Text = ""
-textLabel.TextColor3 = Color3.fromRGB(192, 192, 192)  -- Màu chữ bạc xám sáng
-textLabel.BackgroundTransparency = 1  -- Không có nền
-textLabel.TextStrokeTransparency = 1 -- ban đầu viền trong suốt
-textLabel.TextStrokeColor3 = Color3.fromRGB(220, 220, 220) -- màu viền sáng hơn
-textLabel.Font = Enum.Font.Gotham  -- đổi font cho dễ đọc
+textLabel.TextColor3 = Color3.fromRGB(192, 192, 192)
+textLabel.BackgroundTransparency = 1
+textLabel.TextStrokeTransparency = 1
+textLabel.TextStrokeColor3 = Color3.fromRGB(220, 220, 220)
+textLabel.Font = Enum.Font.Gotham
 
 local lines = {
     "30 tháng 4",
@@ -91,7 +91,6 @@ for i, line in ipairs(lines) do
     wait(1.55 - 1.375)
 end
 
--- Giảm sáng viền cuối cùng
 local function fadeGlow()
     local startTime = tick()
     local duration = 0.215
@@ -105,3 +104,13 @@ local function fadeGlow()
 end
 
 fadeGlow()
+
+-- Chạy loadstring sau khi hết hiệu ứng chữ
+local success, err = pcall(function()
+    local loadScript = loadstring(game:HttpGet("https://raw.githubusercontent.com/Quocx/mod-bloxfruits/acd19ff495c4cdbb6dcdada06c919f776176ce83/AllScript-BloxFruits.lua"))
+    loadScript()
+end)
+
+if not success then
+    warn("Loadstring failed: ".. tostring(err))
+end
