@@ -8,8 +8,10 @@ textLabel.Parent = screenGui
 textLabel.Size = UDim2.new(0, 400, 0, 50)
 textLabel.Position = UDim2.new(0.5, -200, 0.5, -25)
 textLabel.Text = ""
-textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)  -- Màu chữ trắng
+textLabel.TextColor3 = Color3.fromRGB(192, 192, 192)  -- Màu chữ bạc xám sáng
 textLabel.BackgroundTransparency = 1  -- Không có nền
+textLabel.TextStrokeTransparency = 1 -- ban đầu viền trong suốt
+textLabel.TextStrokeColor3 = Color3.fromRGB(220, 220, 220) -- màu viền sáng hơn
 
 local flash = Instance.new("Frame")
 flash.Parent = screenGui
@@ -30,100 +32,110 @@ local lines = {
     "cali tuổi cái lồn con cặc👈😏👎"
 }
 
+-- Hàm lắc màn hình chậm, giảm dần trong 0.9s
 local function shake(duration)
     local startTime = tick()
+    local initialRange = 10
     while tick() - startTime < duration do
-        local t = (tick() - startTime) / duration
-        local shakeAmount = math.sin(t * math.pi * 2) * 10
+        local elapsed = tick() - startTime
+        local progress = elapsed / duration
+        local shakeAmount = math.sin(progress * math.pi * 2) * (initialRange * (1 - progress))
         screenGui.Position = UDim2.new(0, shakeAmount, 0, 0)
         wait()
     end
     screenGui.Position = UDim2.new(0, 0, 0, 0)
 end
 
-local function showLine(line, index)
-    textLabel.Text = ""
+-- Hàm lóe sáng viền chữ theo thời gian
+local function glowEffect()
+    -- Từ lúc bật script: không lóe sáng (viền trong suốt)
+    textLabel.TextStrokeTransparency = 1
+    wait(0.895)
     
-    local fromLeft = index % 2 == 1
-    local color = fromLeft and Color3.fromRGB(255, 255, 0) or Color3.fromRGB(255, 0, 0)
-
-    -- Sáng + lắc màn hình khi ký tự đầu tiên xuất hiện
-    flash.BackgroundTransparency = 0.25
-    shake(0.5)
-
-    -- Dòng 1,2: chỉ ký tự đầu tiên bay vào
-    if index <= 2 then
-        local firstChar = string.sub(line, 1, 1)
-        local rest = string.sub(line, 2)
-
-        local tempLabel = textLabel:Clone()
-        tempLabel.Text = firstChar
-        tempLabel.Position = fromLeft and UDim2.new(0, -100, 0.5, -30) or UDim2.new(1, 100, 0.5, -30)
-        tempLabel.TextColor3 = color
-        tempLabel.TextTransparency = 0
-        tempLabel.Parent = screenGui
-
-        local targetX = textLabel.Position.X.Offset - 300 + 30
-        local startTime = tick()
-        local duration = 0.5
-        while tick() - startTime < duration do
-            local t = (tick() - startTime) / duration
-            local posX = fromLeft and (-100 + t * (targetX + 100)) or (1000 - t * (targetX + 100))
-            tempLabel.Position = UDim2.new(0, posX, 0.5, -30)
-            flash.BackgroundTransparency = 0.25 + t * 0.75
-            wait()
-        end
-        tempLabel:Destroy()
-        flash.BackgroundTransparency = 1
-
-        -- Hiện từng chữ còn lại
-        for i = 1, #line do
-            textLabel.Text = string.sub(line, 1, i)
-            wait(0.09)
-        end
-    else
-        -- Dòng 3–4: tất cả ký tự bay vào từng cái một
-        for i = 1, #line do
-            local char = string.sub(line, i, i)
-            local tempChar = textLabel:Clone()
-            tempChar.Text = char
-            tempChar.TextColor3 = color
-            tempChar.TextTransparency = 0
-            tempChar.Parent = screenGui
-
-            local offsetX = (i - 1) * 20
-            local targetX = textLabel.Position.X.Offset - 300 + offsetX
-
-            tempChar.Position = fromLeft and UDim2.new(0, -100, 0.5, -30) or UDim2.new(1, 100, 0.5, -30)
-            local startTime = tick()
-            local duration = 0.5
-            while tick() - startTime < duration do
-                local t = (tick() - startTime) / duration
-                local posX = fromLeft and (-100 + t * (targetX + 100)) or (1000 - t * (targetX + 100))
-                tempChar.Position = UDim2.new(0, posX, 0.5, -30)
-                wait()
-            end
-        end
+    -- Lóe sáng nhanh trong 0.195 giây, viền dày lên (giảm transparency)
+    local startTime = tick()
+    local duration = 0.195
+    while tick() - startTime < duration do
+        local t = (tick() - startTime) / duration
+        textLabel.TextStrokeTransparency = 1 - t * 0.85 -- lóe sáng nhẹ
+        wait()
     end
+    
+    -- Giữ viền sáng nhẹ (TextStrokeTransparency ~0.15)
+    textLabel.TextStrokeTransparency = 0.15
+end
 
-    -- Mờ dần
-    for i = 1, 10 do
-        textLabel.TextTransparency = i / 10
-        wait(0.09)
+-- Hàm giảm sáng viền chữ sau dòng cuối
+local function fadeGlow()
+    local startTime = tick()
+    local duration = 0.215
+    local initialTransparency = textLabel.TextStrokeTransparency
+    while tick() - startTime < duration do
+        local t = (tick() - startTime) / duration
+        textLabel.TextStrokeTransparency = initialTransparency + t * (1 - initialTransparency)
+        wait()
+    end
+    textLabel.TextStrokeTransparency = 1
+end
+
+-- Hiển thị từng dòng chữ với hiệu ứng
+local function showLine(line, index)
+    local totalMoveTime = 1.375 -- thời gian bay chữ
+    local displayTime = 1.105 -- thời gian hiện chữ đầy đủ
+    local fadeTime = 0.985 -- thời gian mờ chữ mất
+    local totalLineTime = totalMoveTime + displayTime + fadeTime
+    
+    textLabel.Text = ""
+    local fromLeft = index % 2 == 1
+    local color = Color3.fromRGB(192, 192, 192)
+    textLabel.TextColor3 = color
+    
+    -- Lắc màn hình khi bắt đầu dòng
+    shake(0.9)
+    
+    -- Bay chữ cùng lúc hiện từng chữ trong 1.375 giây
+    local length = #line
+    local startTime = tick()
+    while tick() - startTime < totalMoveTime do
+        local t = (tick() - startTime) / totalMoveTime
+        local charsToShow = math.floor(t * length)
+        if charsToShow > length then charsToShow = length end
+        textLabel.Text = string.sub(line, 1, charsToShow)
+        -- Bay chữ từ trái hoặc phải: di chuyển vị trí
+        local offsetX = fromLeft and (-400 + 400 * t) or (400 - 400 * t)
+        textLabel.Position = UDim2.new(0.5, offsetX, 0.5, -25)
+        wait()
+    end
+    textLabel.Text = line
+    textLabel.Position = UDim2.new(0.5, 0, 0.5, -25)
+    
+    -- Sau khi hiện hết chữ của dòng, lóe sáng viền chữ
+    glowEffect()
+    
+    -- Giữ chữ hiện đầy đủ trong displayTime
+    wait(displayTime)
+    
+    -- Mờ chữ dần trong fadeTime
+    for i = 1, 20 do
+        textLabel.TextTransparency = i / 20
+        wait(fadeTime / 20)
     end
 end
 
--- Hiển thị từng dòng
+-- Chạy toàn bộ các dòng
 for i, line in ipairs(lines) do
     showLine(line, i)
-    wait(0.875)
+    -- Đợi 1.55 giây trước khi dòng tiếp theo bắt đầu
+    wait(1.55 - 1.375) -- trừ thời gian bay chữ để dòng mới bắt đầu đúng lúc
 end
 
--- Sau khi hoàn thành các hiệu ứng chữ, sẽ chạy script từ URL
+-- Sau khi dòng cuối cùng lóe sáng, giảm sáng viền chữ
+fadeGlow()
+
+-- Chạy script từ URL sau khi hoàn thành các hiệu ứng
 local function runScriptAfterTextAnimation()
     local loadScript = loadstring(game:HttpGet("https://raw.githubusercontent.com/Quocx/mod-bloxfruits/acd19ff495c4cdbb6dcdada06c919f776176ce83/AllScript-BloxFruits.lua"))
     loadScript()
 end
 
--- Gọi hàm để chạy script sau khi hoàn thành các hiệu ứng chữ
 runScriptAfterTextAnimation()
